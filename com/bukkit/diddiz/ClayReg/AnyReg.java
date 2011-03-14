@@ -1,5 +1,6 @@
 //Author: DiddiZ
-//Date: 2011-01-29
+//Date: 2011-02-10
+
 package com.bukkit.diddiz.AnyReg;
 
 import java.io.File;
@@ -110,7 +111,7 @@ public class AnyReg extends JavaPlugin
 	    	if (event.isCancelled())
 	    		return;
 	    	Block block = event.getBlock();
-	    	if (respawn.contains(block.getTypeId()) && event.getDamageLevel().getLevel() == 3)
+	    	if (respawn.contains(block.getTypeId()) && event.getDamageLevel().getLevel() == 3 && getServer().getWorlds().indexOf(block.getWorld()) == 0)
 	    	{
 	    		RegTimerTask task = regTasks[respawn.indexOf(block.getTypeId())];
 	    		Position pos = new Position(block);
@@ -126,7 +127,7 @@ public class AnyReg extends JavaPlugin
 	    	if (event.isCancelled())
 	    		return;
 	    	Block block = event.getBlock();
-	    	if (respawn.contains(block.getTypeId()))
+	    	if (respawn.contains(block.getTypeId()) && getServer().getWorlds().indexOf(block.getWorld()) == 0)
 	    	{
 	    		RegTimerTask task = regTasks[respawn.indexOf(block.getTypeId())];
 	    		Position pos = new Position(block);
@@ -162,7 +163,7 @@ public class AnyReg extends JavaPlugin
 	    {
 			if (blocks.size() > 0)
 	    	{
-				World world = getServer().getWorlds()[0];
+				World world = getServer().getWorlds().get(0);
 		    	Block block;
 		    	for (int i = 0; i < blocks.size(); i++)
 		        {
