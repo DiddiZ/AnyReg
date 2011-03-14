@@ -17,7 +17,7 @@ public class ClayReg extends Plugin
 	static Logger minecraftLog = Logger.getLogger("Minecraft");
     private Listener listener = new Listener();
     private String name = "ClayReg";
-    private String version = "0.1";
+    private String version = "0.1b";
     private ArrayList<Position> clays = new ArrayList<Position>();
     private Timer timer = new Timer();
     private RegTimerTask task = new RegTimerTask();
@@ -40,7 +40,7 @@ public class ClayReg extends Plugin
     	timer.scheduleAtFixedRate(task, regDelay, regDelay);
     	minecraftLog.info(name + " v" + version + " loaded");
     	etc.getLoader().addListener(PluginLoader.Hook.SERVERCOMMAND, listener, this, PluginListener.Priority.MEDIUM);
-    	etc.getLoader().addListener(PluginLoader.Hook.BLOCK_DESTROYED, listener, this, PluginListener.Priority.MEDIUM);
+    	etc.getLoader().addListener(PluginLoader.Hook.BLOCK_BROKEN, listener, this, PluginListener.Priority.MEDIUM);
     }
     
 	private class Listener extends PluginListener
@@ -52,15 +52,13 @@ public class ClayReg extends Plugin
 			return false;
 		}
 		
-		public boolean onBlockDestroy(Player player, Block block) 
+		public boolean onBlockBreak(Player player, Block block) 
 		{
-			if (block.getType() != 82)
-				return false;
-			if (block.getStatus() != 3)
-				return false;
-			Position pos = new Position(block.getX(), block.getY(), block.getZ());
-			if (!clays.contains(pos))
-				clays.add(new Position(block.getX(), block.getY(), block.getZ()));
+			if (block.getType() == 82)
+			{
+				if (!clays.contains(new Position(block.getX(), block.getY(), block.getZ())))
+					clays.add(new Position(block.getX(), block.getY(), block.getZ()));
+			}
 			return false;
 		}
 	}
@@ -75,7 +73,7 @@ public class ClayReg extends Plugin
         }
 		catch (Exception e)
 		{
-        	minecraftLog.log(Level.SEVERE, "Exception while reading from measuringTape.properties", e);
+        	minecraftLog.log(Level.SEVERE, "Exception while reading from clayReg.properties", e);
 		}
 	}
 	
@@ -83,26 +81,29 @@ public class ClayReg extends Plugin
 	{
 	    public void run() 
 	    {
-	    	Server server = etc.getServer();
-	    	for (int i = 0; i < clays.size(); i++)
-	        {
-	        	int now = server.getBlockAt(clays.get(i).X, clays.get(i).Y, clays.get(i).Z).getType();
-	    		if (now == 0 || now == 8 || now == 9)
-	    		{
-		    		if (Math.random() < regChance)
-		        	{
-		        		server.setBlockAt(82, clays.get(i).X, clays.get(i).Y, clays.get(i).Z);
-		        		clays.remove(i);
-		        		i--;
-		        	}
-	    		}
-	    		else
-	    		{
-	    			clays.remove(i);
-	    			i--;
-	    		}
-	        }
-	    	SaveBlockFile();
+	    	if (clays.size() > 0)
+	    	{
+		    	Server server = etc.getServer();
+		    	for (int i = 0; i < clays.size(); i++)
+		        {
+		        	int now = server.getBlockAt(clays.get(i).X, clays.get(i).Y, clays.get(i).Z).getType();
+		    		if (now == 0 || now == 8 || now == 9)
+		    		{
+			    		if (Math.random() < regChance)
+			        	{
+			        		server.setBlockAt(82, clays.get(i).X, clays.get(i).Y, clays.get(i).Z);
+			        		clays.remove(i);
+			        		i--;
+			        	}
+		    		}
+		    		else
+		    		{
+		    			clays.remove(i);
+		    			i--;
+		    		}
+		        }
+		    	SaveBlockFile();
+	    	}
 	    }
 	}
 
