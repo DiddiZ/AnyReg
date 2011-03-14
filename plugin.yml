@@ -1,0 +1,6 @@
+name: ClayReg
+version: 0.2
+author: DiddiZ
+website: http://www.diddiz.de/minecraft/
+main: com.bukkit.diddiz.ClayReg.ClayReg
+description: Regenerates mined clay.
