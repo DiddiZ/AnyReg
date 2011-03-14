@@ -1,0 +1,12 @@
+AnyReg mainly respawns mined clay blocks at a adjustable rate.
+AnyReg initially was released as ClayReg, that only was able to respawn clay. For every block type different settings can be made. If the config can be precised which block respawns at which rate, with which percentage, which blocks can pe replaced by a respawning block and wether player placed blocks should respawn. Due to some blocks beeing very rare, it could be preferable to have regenerating these blocks.
+E.g. respawning clay will replace air and water but nothing else so you can build on a claypit withhout getting blocks from the building replaced. Created clay blocks will be detected, so you can place new clay pits (or not depending of the config). Blocks destroyed with super pickaxe or WorldEdit/CuboidPlugin like editors won't respawn.
+This also appies to AnyReg, unless AnyReg isn't limited to clay. Ideas for regenerating blocks:
+
+    * Clay
+    * Pumpkins
+    * Flowers and mushrooms
+    * Ores and coal
+    * Sand
+    * Snow
+    * Lightstone
