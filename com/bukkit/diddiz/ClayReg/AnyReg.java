@@ -1,5 +1,5 @@
 //Author: DiddiZ
-//Date: 2011-01-25
+//Date: 2011-01-29
 package com.bukkit.diddiz.AnyReg;
 
 import java.io.File;
@@ -22,8 +22,6 @@ import org.bukkit.event.Event;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.player.PlayerChatEvent;
-import org.bukkit.event.player.PlayerListener;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
@@ -32,11 +30,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class AnyReg extends JavaPlugin
 {
 	private Logger logger = Logger.getLogger("Minecraft");
-	private RegBlockListener RegBlockListener = new RegBlockListener();
-	private RegPlayerListener RegPlayerListener = new RegPlayerListener();
+	private AnyRegBlockListener RegBlockListener = new AnyRegBlockListener();
     private Timer timer = new Timer();
     private RegTimerTask[] regTasks;
     private List<Integer> respawn;
+    
     
 	public AnyReg(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader)
     {
@@ -46,11 +44,55 @@ public class AnyReg extends JavaPlugin
 	@Override
 	public void onEnable()
 	{
-	    LoadProperties();
+		int saveDelay = 0;
+		try
+		{
+			File file = new File (getDataFolder(), "config.yml");
+			if (!file.exists())
+			{
+				file.getParentFile().mkdirs();
+				FileWriter writer = new FileWriter(file);
+				String crlf = System.getProperty("line.separator");
+				writer.write("saveDelay : 300000" + crlf
+						+ "respawn : [82, 86]" + crlf
+						+ "\"82\" :" + crlf
+						+ "  regDelay : 360000" + crlf
+						+ "  regChance : 0.1" + crlf
+						+ "  useBlacklist : false" + crlf
+						+ "  canReplace : [0, 8, 9]" + crlf
+						+ "\"86\" :" + crlf
+						+ "  regDelay : 4320000" + crlf
+						+ "  regChance : 0.05" + crlf
+						+ "  useBlacklist : true" + crlf
+						+ "  canReplace : [0]");
+				writer.close();
+				logger.info("[AnyReg] Config created");
+			}
+			getConfiguration().load();
+			saveDelay = getConfiguration().getInt("saveDelay", 0);
+			respawn = getConfiguration().getIntList("respawn", new ArrayList<Integer>());
+			regTasks = new RegTimerTask[respawn.size()];
+			for (int i = 0; i < respawn.size(); i++)
+			{
+				regTasks[i] = new RegTimerTask (respawn.get(i),
+						getConfiguration().getInt(respawn.get(i) + ".regDelay", Integer.MAX_VALUE),
+						getConfiguration().getDouble(respawn.get(i) + ".regChance", 0),
+						getConfiguration().getBoolean(respawn.get(i) + ".useBlacklist", false),
+						getConfiguration().getIntList(respawn.get(i) + ".canReplace", new ArrayList<Integer>()));
+			}
+		}
+		catch (Exception e)
+		{
+        	logger.log(Level.SEVERE, "[AnyReg] Exception while reading from config.yml", e);
+        	getServer().getPluginManager().disablePlugin(this);
+		}
+	    for (int i = 0; i < regTasks.length; i++)
+	    	timer.scheduleAtFixedRate(regTasks[i], regTasks[i].regDelay, regTasks[i].regDelay);
+	    if (saveDelay > 0)
+	    	timer.scheduleAtFixedRate(new SaveTimerTask(), saveDelay, saveDelay);
 	    PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, RegBlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, RegBlockListener, Event.Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLAYER_COMMAND, RegPlayerListener, Event.Priority.Monitor, this);
         logger.info("AnyReg v" + getDescription().getVersion() + " by DiddiZ enabled");
 	}
     
@@ -61,7 +103,7 @@ public class AnyReg extends JavaPlugin
 		logger.info("AnyReg disabled");
 	}
     
-	private class RegBlockListener extends BlockListener
+	private class AnyRegBlockListener extends BlockListener
 	{ 
 	    public void onBlockDamage(BlockDamageEvent event)
 	    {
@@ -92,20 +134,6 @@ public class AnyReg extends JavaPlugin
 	    			task.blacklistedBlocks.add(pos);
 	    	}
 	    }
-	}
-	
-	private class RegPlayerListener extends PlayerListener
-	{ 
-		public void onPlayerCommand(PlayerChatEvent event)
-		{
-			if (event.isCancelled())
-				return;
-			if (event.getMessage().equalsIgnoreCase("/#stop"))
-			{
-				SaveAllBlockFiles();
-				logger.info("[AnyReg] Saved blocks");
-			}
-		}
 	}
 	
 	private class RegTimerTask extends TimerTask
@@ -161,6 +189,14 @@ public class AnyReg extends JavaPlugin
 	    }
 	}
 	
+	private class SaveTimerTask extends TimerTask
+	{
+		public void run() 
+	    {
+			SaveAllBlockFiles();
+	    }
+	}
+	
 	private class Position
 	{
 		public int X, Y, Z;
@@ -193,52 +229,6 @@ public class AnyReg extends JavaPlugin
 			return true;
 		}
 	}
-	
-    private void LoadProperties()
-    {
-		try
-		{
-			File file = new File (getDataFolder(), "config.yml");
-			if (!file.exists())
-				WriteDefaultConfig(file);
-			getConfiguration().load();
-			respawn = getConfiguration().getIntList("respawn", new ArrayList<Integer>());
-			regTasks = new RegTimerTask[respawn.size()];
-			for (int i = 0; i < respawn.size(); i++)
-			{
-				regTasks[i] = new RegTimerTask (respawn.get(i),
-						getConfiguration().getInt(respawn.get(i) + ".regDelay", 0),
-						getConfiguration().getDouble(respawn.get(i) + ".regChance", 0),
-						getConfiguration().getBoolean(respawn.get(i) + ".useBlacklist", false),
-						getConfiguration().getIntList(respawn.get(i) + ".canReplace", new ArrayList<Integer>()));
-				timer.scheduleAtFixedRate(regTasks[i], regTasks[i].regDelay, regTasks[i].regDelay);
-			}
-        }
-		catch (Exception e)
-		{
-        	logger.log(Level.SEVERE, "Exception while reading from config.yml", e);
-		}
-	}
-    
-    private void WriteDefaultConfig(File file) throws Exception
-    {
-		file.getParentFile().mkdirs();
-		FileWriter writer = new FileWriter(file);
-		String crlf = System.getProperty("line.separator");
-		writer.write("respawn : [82, 86]" + crlf
-				+ "\"82\" :" + crlf
-				+ "  regDelay : 360000" + crlf
-				+ "  regChance : 0.1" + crlf
-				+ "  useBlacklist : false" + crlf
-				+ "  canReplace : [0, 8, 9]" + crlf
-				+ "\"86\" :" + crlf
-				+ "  regDelay : 4320000" + crlf
-				+ "  regChance : 0.05" + crlf
-				+ "  useBlacklist : true" + crlf
-				+ "  canReplace : [0]");
-		writer.close();
-		logger.info("[Reg] Config created");
-    }
     
 	private void SaveAllBlockFiles()
 	{
