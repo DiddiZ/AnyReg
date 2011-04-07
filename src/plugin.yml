@@ -1,0 +1,11 @@
+name: AnyReg
+version: 1.0alpha2
+author: DiddiZ
+website: http://www.diddiz.de/minecraft/
+main: de.diddiz.AnyReg.AnyReg
+description: Regenerates mined blocks.
+commands:
+  ar:
+    description: 'AnyReg commands.'
+    usage: 'Usage: /<command> help'
+    aliases: []
