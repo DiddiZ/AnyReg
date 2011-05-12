@@ -5,14 +5,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.bukkit.Material;
 import org.bukkit.util.config.Configuration;
 
-public class Config {
-	private Configuration config;
-	private Configuration respawnConfig;
-	private Configuration regionConfig;
+public class Config
+{
+	private final Configuration config;
+	private final Configuration respawnConfig;
+	private final Configuration regionConfig;
 	public String dbDriver;
 	public String dbUrl;
 	public String dbUsername;
@@ -21,16 +21,16 @@ public class Config {
 	public int delay;
 	public boolean logExplosions;
 	public boolean logFire;
-	
+
 	public Config(Configuration config, File dataFolder) {
-		this.config = config;;
+		this.config = config;
 		respawnConfig = new Configuration(new File(dataFolder, "respawns.yml"));
 		regionConfig = new Configuration(new File(dataFolder, "regions.yml"));
 	}
-	 
+
 	public boolean LoadConfig() {
 		config.load();
-		List<String> keys = config.getKeys(null);
+		final List<String> keys = config.getKeys(null);
 		if (!keys.contains("delay"))
 			config.setProperty("delay", 6);
 		if (!keys.contains("logExplosions"))
@@ -47,7 +47,7 @@ public class Config {
 			config.setProperty("password", "pass");
 		if (!keys.contains("useMySQL"))
 			config.setProperty("useMySQL", false);
-		if (!config.save()){
+		if (!config.save()) {
 			AnyReg.log.severe("[AnyRegBlock] Error while writing to config.yml");
 			return false;
 		}
@@ -61,20 +61,16 @@ public class Config {
 		useMySQL = config.getBoolean("useMySQL", false);
 		return true;
 	}
-	
+
 	public boolean LoadRespawns(List<Respawn> respawns) {
 		respawnConfig.load();
-		for (String key : respawnConfig.getKeys(null)) {
-			Material mat = Material.matchMaterial(key);
+		for (final String key : respawnConfig.getKeys(null)) {
+			final Material mat = Material.matchMaterial(key);
 			if (mat == null) {
 				AnyReg.log.warning("[AnyReg] Can't resolve material " + key + ".");
 				continue;
 			}
-			Respawn respawn = new Respawn(mat.getId(),
-					respawnConfig.getInt(key + ".regDelay", 360), 
-					respawnConfig.getDouble(key + ".regChance", 0.1), 
-					respawnConfig.getBoolean(key + ".useBlacklist", true), 
-					new HashSet<Integer>(respawnConfig.getIntList(key + ".canReplace", null)));
+			final Respawn respawn = new Respawn(mat.getId(), respawnConfig.getInt(key + ".regDelay", 360), respawnConfig.getDouble(key + ".regChance", 0.1), respawnConfig.getBoolean(key + ".useBlacklist", true), new HashSet<Integer>(respawnConfig.getIntList(key + ".canReplace", null)));
 			if (!key.equals(mat.toString())) {
 				respawnConfig.setProperty(mat.toString() + ".regDelay", respawn.getRegDelay());
 				respawnConfig.setProperty(mat.toString() + ".regChance", respawn.getRegChance());
@@ -82,7 +78,7 @@ public class Config {
 				respawnConfig.setProperty(mat.toString() + ".canReplace", new ArrayList<Integer>(respawn.getCanReplace()));
 				respawnConfig.removeProperty(key);
 			}
-			for (int id : respawn.getCanReplace()) {
+			for (final int id : respawn.getCanReplace()) {
 				if (Material.getMaterial(id) == null) {
 					respawn.getCanReplace().remove(id);
 					AnyReg.log.warning("[AnyReg] " + id + " is not a valid item id");
@@ -94,7 +90,7 @@ public class Config {
 			}
 			respawns.add(respawn);
 		}
-		if (!respawnConfig.save()){
+		if (!respawnConfig.save()) {
 			AnyReg.log.severe("[AnyReg] Error while writing to respawns.yml");
 			return false;
 		}
@@ -102,13 +98,13 @@ public class Config {
 			return false;
 		return true;
 	}
-	
+
 	public boolean LoadRegions(List<Region> regions) {
 		regionConfig.load();
-		for (String key : regionConfig.getKeys(null)) {
+		for (final String key : regionConfig.getKeys(null)) {
 			try {
 				regions.add(new Region(key, regionConfig.getString(key + ".region"), new HashSet<Integer>(regionConfig.getIntList(key + ".respawn", null))));
-			} catch (Exception ex) {
+			} catch (final Exception ex) {
 				AnyReg.log.warning("[AnyReg] " + ex.getMessage());
 			}
 		}
@@ -116,7 +112,7 @@ public class Config {
 			return false;
 		return true;
 	}
-	
+
 	public boolean RegionAdd(List<Region> regions, Region region) {
 		try {
 			regionConfig.load();
@@ -124,13 +120,13 @@ public class Config {
 			regionConfig.setProperty(region.getName() + ".respawn", region.getRespawns());
 			regionConfig.save();
 			regions.add(region);
-		return true;
-		} catch (Exception ex) {
+			return true;
+		} catch (final Exception ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg] Error while adding region", ex);
 			return false;
 		}
 	}
-	
+
 	public boolean RegionRemove(List<Region> regions, Region region) {
 		try {
 			regionConfig.load();
@@ -138,33 +134,33 @@ public class Config {
 			regionConfig.save();
 			regions.remove(region.hashCode());
 			return true;
-		} catch (Exception ex) {
+		} catch (final Exception ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg] Error while removing region", ex);
 			return false;
 		}
 	}
-	
+
 	public boolean RegionAddRespawn(Region region, int type) {
 		try {
 			region.getRespawns().add(type);
 			regionConfig.load();
 			regionConfig.setProperty(region.getName() + ".respawn", new ArrayList<Integer>(region.getRespawns()));
 			regionConfig.save();
-		return true;
-		} catch (Exception ex) {
+			return true;
+		} catch (final Exception ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg] Error while adding respawn '" + type + "' to region '" + region.getName() + "'", ex);
 			return false;
 		}
 	}
-	
+
 	public boolean RegionRemoveRespawn(Region region, int type) {
 		try {
 			region.getRespawns().remove(type);
 			regionConfig.load();
 			regionConfig.setProperty(region.getName() + ".respawn", new ArrayList<Integer>(region.getRespawns()));
 			regionConfig.save();
-		return true;
-		} catch (Exception ex) {
+			return true;
+		} catch (final Exception ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg] Error while removing respawn '" + type + "' from region '" + region.getName() + "'", ex);
 			return false;
 		}

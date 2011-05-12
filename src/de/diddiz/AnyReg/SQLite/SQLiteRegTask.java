@@ -5,33 +5,31 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
-
 import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-
 import de.diddiz.AnyReg.AnyReg;
 import de.diddiz.AnyReg.RegTask;
 import de.diddiz.AnyReg.Respawn;
 
 public class SQLiteRegTask extends RegTask
 {
-	public SQLiteRegTask (Server server, Respawn respawn) {
+	public SQLiteRegTask(Server server, Respawn respawn) {
 		super(server, respawn);
 	}
-	
+
 	@Override
 	public void run() {
 		PreparedStatement psDel = null;
 		PreparedStatement psBlack = null;
-		Connection conn = AnyReg.getConnection();
+		final Connection conn = AnyReg.getConnection();
 		ResultSet rs = null;
 		Block block;
 		if (conn == null)
 			return;
 		try {
-			long start = System.currentTimeMillis();
+			final long start = System.currentTimeMillis();
 			int counter = 0;
 			conn.setAutoCommit(false);
 			psDel = conn.prepareStatement("DELETE FROM `ar-respawning` WHERE rowid = ?");
@@ -51,7 +49,7 @@ public class SQLiteRegTask extends RegTask
 							continue;
 						}
 					}
-					World world = server.getWorld(rs.getString("worldname"));
+					final World world = server.getWorld(rs.getString("worldname"));
 					if (world != null) {
 						block = world.getBlockAt(rs.getInt("x"), rs.getInt("y"), rs.getInt("z"));
 						if (!world.isChunkLoaded(block.getChunk()))
@@ -75,9 +73,9 @@ public class SQLiteRegTask extends RegTask
 			conn.commit();
 			if (counter > 0)
 				AnyReg.log.info("[AnyReg RegTask " + Material.getMaterial(respawn.getType()) + "] Took " + (System.currentTimeMillis() - start) + "ms for " + counter + " blocks");
-		} catch (SQLException ex) {
+		} catch (final SQLException ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg RegTask] SQL exception", ex);
-		} catch (Exception ex) {
+		} catch (final Exception ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg RegTask] Exception", ex);
 		} finally {
 			try {
@@ -87,7 +85,7 @@ public class SQLiteRegTask extends RegTask
 					psDel.close();
 				if (conn != null)
 					conn.close();
-			} catch (SQLException ex) {
+			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 			}
 		}

@@ -2,7 +2,6 @@ package de.diddiz.AnyReg;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 
@@ -13,7 +12,7 @@ public class Region
 	private int[] max;
 	private String worldName;
 	private Set<Integer> respawn;
-	
+
 	public Region(String name, String regionStr, Set<Integer> respawn) throws Exception {
 		if (name == null || regionStr == null || respawn == null)
 			throw new Exception("You may have a syntax error in regions.yml");
@@ -21,36 +20,36 @@ public class Region
 		this.respawn = respawn;
 		min = new int[3];
 		max = new int[3];
-		String[] split = regionStr.split(":");
+		final String[] split = regionStr.split(":");
 		if (split.length != 4)
 			throw new Exception("Failed to read region " + name + ". You have some odd ':' here: '" + regionStr + "'");
 		if (split[0].equals("*"))
 			worldName = null;
 		else
 			worldName = split[0];
-		for (int i = 1; i < 4; i++)	{
+		for (int i = 1; i < 4; i++) {
 			if (split[i].equals("*")) {
-				min[i-1] = Integer.MIN_VALUE;
-				max[i-1] = Integer.MAX_VALUE;
+				min[i - 1] = Integer.MIN_VALUE;
+				max[i - 1] = Integer.MAX_VALUE;
 			} else if (split[i].indexOf(' ') == -1) {
 				if (!isInt(split[i]))
 					throw new Exception("Failed to read region " + name + ". Value isn't a number: '" + split[i] + "'");
-				min[i-1] = Integer.parseInt(split[i]);
-				max[i-1] = min[i];
+				min[i - 1] = Integer.parseInt(split[i]);
+				max[i - 1] = min[i];
 			} else {
-				String[] split2 = split[i].split(" ");
+				final String[] split2 = split[i].split(" ");
 				if (split2.length != 2)
 					throw new Exception("Failed to read region " + name + ". You have some odd spaces here: '" + split[i] + "'");
 				if (!isInt(split2[0]))
 					throw new Exception("Failed to read region " + name + ". Value isn't a number: '" + split2[0] + "'");
 				if (!isInt(split2[1]))
 					throw new Exception("Failed to read region " + name + ". Value isn't a number: '" + split2[1] + "'");
-				min[i-1] = Integer.parseInt(split2[0]);
-				max[i-1] = Integer.parseInt(split2[1]);
+				min[i - 1] = Integer.parseInt(split2[0]);
+				max[i - 1] = Integer.parseInt(split2[1]);
 			}
 		}
 	}
-	
+
 	public Region(String name, Location loc1, Location loc2) {
 		this.name = name;
 		if (loc1.getWorld() != loc2.getWorld())
@@ -67,21 +66,21 @@ public class Region
 		max[2] = Math.max(loc1.getBlockZ(), loc2.getBlockZ());
 		respawn = new HashSet<Integer>();
 	}
-	
+
 	public Region(String name) {
 		if (name == null)
 			AnyReg.log.info("[Region] name == null");
 		this.name = name;
 	}
-	
+
 	public String getName() {
 		return name;
 	}
-	
+
 	public boolean Respawns(int type) {
 		return respawn.contains(type);
 	}
-	
+
 	public String getRegionString() {
 		String result;
 		if (worldName == null)
@@ -92,17 +91,17 @@ public class Region
 			if (min[i] == Integer.MIN_VALUE && max[i] == Integer.MAX_VALUE)
 				result += ":*";
 			else if (min[i] == max[i])
-				result +=  ":" + min[i];
-			else 
+				result += ":" + min[i];
+			else
 				result += ":" + min[i] + " " + max[i];
 		}
 		return result;
 	}
-	
+
 	public Set<Integer> getRespawns() {
 		return respawn;
 	}
-	
+
 	public boolean isCognizantFor(Block block) {
 		if (!respawn.contains(block.getTypeId()))
 			return false;
@@ -116,15 +115,15 @@ public class Region
 			return false;
 		return true;
 	}
-	
-    private boolean isInt(String str) {
-        try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException nfe) {
-            return false;
-        }
-    }
+
+	private boolean isInt(String str) {
+		try {
+			Integer.parseInt(str);
+			return true;
+		} catch (final NumberFormatException nfe) {
+			return false;
+		}
+	}
 
 	@Override
 	public int hashCode() {

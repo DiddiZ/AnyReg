@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -36,29 +35,27 @@ import org.bukkit.event.entity.EntityListener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import JDCBPool.JDCConnectionDriver;
-
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.selections.CuboidSelection;
 import com.sk89q.worldedit.bukkit.selections.Selection;
-
 import de.diddiz.AnyReg.MySQL.MySQLConsumer;
 import de.diddiz.AnyReg.MySQL.MySQLRegTask;
 import de.diddiz.AnyReg.SQLite.SQLiteConsumer;
 import de.diddiz.AnyReg.SQLite.SQLiteRegTask;
+import de.diddiz.util.ConnectionPool;
 import de.diddiz.util.Download;
 
 public class AnyReg extends JavaPlugin
 {
 	public static Logger log;
+	private static ConnectionPool pool;
 	static Config config;
-	private LinkedBlockingQueue<BlockState> regQueue = new LinkedBlockingQueue<BlockState>();
-	private LinkedBlockingQueue<BlockState> blackQueue = new LinkedBlockingQueue<BlockState>();
-	private List<Region> regions = new LinkedList<Region>();
-	private List<Respawn> respawns = new LinkedList<Respawn>();
-	private Set<Integer> respawningBlocks = new HashSet<Integer>();
-	private Set<Integer> blacklistedBlocks = new HashSet<Integer>();
+	private final LinkedBlockingQueue<BlockState> regQueue = new LinkedBlockingQueue<BlockState>();
+	private final LinkedBlockingQueue<BlockState> blackQueue = new LinkedBlockingQueue<BlockState>();
+	private final List<Region> regions = new LinkedList<Region>();
+	private final List<Respawn> respawns = new LinkedList<Respawn>();
+	private final Set<Integer> respawningBlocks = new HashSet<Integer>();
+	private final Set<Integer> blacklistedBlocks = new HashSet<Integer>();
 
 	@Override
 	public void onEnable() {
@@ -68,32 +65,33 @@ public class AnyReg extends JavaPlugin
 		File file = new File("lib/mysql-connector-java-bin.jar");
 		try {
 			if (!file.exists() || file.length() == 0) {
-				log.info("[LogBlock] Downloading " + file.getName() + "...");
+				log.info("[AnyReg] Downloading " + file.getName() + "...");
 				Download.download(new URL("http://diddiz.insane-architects.net/download/mysql-connector-java-bin.jar"), file);
 			}
 			if (!file.exists() || file.length() == 0)
 				throw new FileNotFoundException(file.getAbsolutePath() + file.getName());
 			file = new File("lib/sqlitejdbc.jar");
 			if (!file.exists() || file.length() == 0) {
-				log.info("[LogBlock] Downloading " + file.getName() + "...");
+				log.info("[AnyReg] Downloading " + file.getName() + "...");
 				Download.download(new URL("http://diddiz.insane-architects.net/download/sqlitejdbc.jar"), file);
 			}
 			if (!file.exists() || file.length() == 0)
 				throw new FileNotFoundException(file.getAbsolutePath() + file.getName());
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			log.log(Level.SEVERE, "[AnyReg] Error while downloading " + file.getName() + ".");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
-		try {
-			if (config.useMySQL)
-				new JDCConnectionDriver(config.dbDriver, config.dbUrl, config.dbUsername, config.dbPassword);
-			Connection conn = getConnection();
-			conn.close();
-		} catch (Exception ex) {
-			log.log(Level.SEVERE, "[AnyReg] Can't get a connection to the database.", ex);
-			getServer().getPluginManager().disablePlugin(this);
-			return;
+		if (config.useMySQL) {
+			try {
+				log.info("[AnyReg] Connecting to " + config.dbUsername + "@" + config.dbUrl + "...");
+				pool = new ConnectionPool(config.dbUrl, config.dbUsername, config.dbPassword);
+				final Connection conn = getConnection();
+				conn.close();
+			} catch (final Exception ex) {
+				log.log(Level.SEVERE, "[AnyReg] Exception while checking database connection", ex);
+				return;
+			}
 		}
 		if (!checkTables()) {
 			log.severe("[AnyReg] Error while checking tables. They may not exist and/or resist creation.");
@@ -117,7 +115,7 @@ public class AnyReg extends JavaPlugin
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
-		for (Respawn respawn : respawns) {
+		for (final Respawn respawn : respawns) {
 			respawningBlocks.add(respawn.getType());
 			if (respawn.isUseBlacklist())
 				blacklistedBlocks.add(respawn.getType());
@@ -126,11 +124,11 @@ public class AnyReg extends JavaPlugin
 				regtask = new MySQLRegTask(getServer(), respawn);
 			else
 				regtask = new SQLiteRegTask(getServer(), respawn);
-			if (getServer().getScheduler().scheduleSyncRepeatingTask(this, regtask, respawn.getRegDelay()*20, respawn.getRegDelay()*20) == -1)
+			if (getServer().getScheduler().scheduleSyncRepeatingTask(this, regtask, respawn.getRegDelay() * 20, respawn.getRegDelay() * 20) == -1)
 				log.severe("[AnyReg] Failed to schedule reg task for " + Material.getMaterial(respawn.getType()));
 		}
-		PluginManager pm = getServer().getPluginManager();
-		AnyRegBlockListener blockListener = new AnyRegBlockListener();
+		final PluginManager pm = getServer().getPluginManager();
+		final AnyRegBlockListener blockListener = new AnyRegBlockListener();
 		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, Event.Priority.Monitor, this);
 		if (config.logFire)
@@ -142,31 +140,30 @@ public class AnyReg extends JavaPlugin
 			consumer = new MySQLConsumer(regQueue, blackQueue);
 		else
 			consumer = new SQLiteConsumer(regQueue, blackQueue);
-		getServer().getScheduler().scheduleSyncRepeatingTask(this, consumer, config.delay*20, config.delay*20);
+		getServer().getScheduler().scheduleSyncRepeatingTask(this, consumer, config.delay * 20, config.delay * 20);
 		log.info("AnyReg v" + getDescription().getVersion() + " by DiddiZ enabled");
 	}
 
 	@Override
-	public void onDisable()
-	{
+	public void onDisable() {
 		getServer().getScheduler().cancelTasks(this);
 		log.info("AnyReg disabled");
 	}
 
 	@Override
-	public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args)	{
+	public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args) {
 		if (cmd.getName().equalsIgnoreCase("ar")) {
-			if ((sender instanceof Player)) {
-				Player player = (Player)sender;
+			if (sender instanceof Player) {
+				final Player player = (Player)sender;
 				if (args.length == 0) {
 					player.sendMessage(ChatColor.LIGHT_PURPLE + "AnyReg v" + getDescription().getVersion() + " by DiddiZ");
 					player.sendMessage(ChatColor.LIGHT_PURPLE + "Type /ar help for help");
 				} else if (args[0].equalsIgnoreCase("create")) {
 					if (args.length == 2) {
 						if (!regions.contains(new Region(args[1]))) {
-							Plugin we = getServer().getPluginManager().getPlugin("WorldEdit");
+							final Plugin we = getServer().getPluginManager().getPlugin("WorldEdit");
 							if (we != null) {
-								Selection sel = ((WorldEditPlugin)we).getSelection(player);
+								final Selection sel = ((WorldEditPlugin)we).getSelection(player);
 								if (sel != null) {
 									if (sel instanceof CuboidSelection)
 										if (config.RegionAdd(regions, new Region(args[2], sel.getMinimumPoint(), sel.getMaximumPoint())))
@@ -180,8 +177,8 @@ public class AnyReg extends JavaPlugin
 							} else
 								player.sendMessage(ChatColor.RED + "WorldEdit plugin not found");
 						} else
-							player.sendMessage(ChatColor.RED + "There is alredy a region called '" + args[1] + "'");	
-					} else 
+							player.sendMessage(ChatColor.RED + "There is alredy a region called '" + args[1] + "'");
+					} else
 						player.sendMessage(ChatColor.RED + "Usage: /ar region create [name]");
 				} else if (args[0].equalsIgnoreCase("remove")) {
 					if (args.length == 2) {
@@ -191,14 +188,14 @@ public class AnyReg extends JavaPlugin
 							else
 								player.sendMessage(ChatColor.RED + "Error while removing region '" + args[1] + "'");
 						} else
-							player.sendMessage(ChatColor.RED + "There is no region called '" + args[1] + "'");	
-					} else 
+							player.sendMessage(ChatColor.RED + "There is no region called '" + args[1] + "'");
+					} else
 						player.sendMessage(ChatColor.RED + "Usage: /ar region remove [name]");
 				} else if (args[0].equalsIgnoreCase("modify")) {
 					if (args.length == 3) {
-						Region region = regions.get(regions.indexOf(new Region(args[1])));
+						final Region region = regions.get(regions.indexOf(new Region(args[1])));
 						if (region != null) {
-							Material mat = Material.matchMaterial(args[2]);
+							final Material mat = Material.matchMaterial(args[2]);
 							if (mat != null) {
 								if (respawningBlocks.contains(mat.getId())) {
 									if (region.getRespawns().contains(mat.getId())) {
@@ -213,12 +210,12 @@ public class AnyReg extends JavaPlugin
 											player.sendMessage(ChatColor.RED + "Error while adding respawn '" + mat + "' to region '" + args[1] + "'");
 									}
 								} else
-									player.sendMessage(ChatColor.RED + "There is no respawn defined for '" + mat + "'");	
+									player.sendMessage(ChatColor.RED + "There is no respawn defined for '" + mat + "'");
 							} else
-								player.sendMessage(ChatColor.RED + "There is no material called '" + args[2] + "'");	
+								player.sendMessage(ChatColor.RED + "There is no material called '" + args[2] + "'");
 						} else
-							player.sendMessage(ChatColor.RED + "There is no region called '" + args[1] + "'");	
-					} else 
+							player.sendMessage(ChatColor.RED + "There is no region called '" + args[1] + "'");
+					} else
 						player.sendMessage(ChatColor.RED + "Usage: /ar region modify [name] [material]");
 				} else if (args[0].equalsIgnoreCase("help")) {
 					player.sendMessage(ChatColor.LIGHT_PURPLE + "AnyReg Commands:");
@@ -235,12 +232,12 @@ public class AnyReg extends JavaPlugin
 	}
 
 	private boolean checkTables() {
-		Connection conn = getConnection();
+		final Connection conn = getConnection();
 		Statement state = null;
 		if (conn == null)
 			return false;
 		try {
-			DatabaseMetaData dbm = conn.getMetaData();
+			final DatabaseMetaData dbm = conn.getMetaData();
 			state = conn.createStatement();
 			if (!dbm.getTables(null, null, "ar-worlds", null).next()) {
 				log.log(Level.INFO, "[AnyReg] Crating table ar-worlds.");
@@ -253,7 +250,7 @@ public class AnyReg extends JavaPlugin
 					return false;
 				}
 			}
-			for (World world : getServer().getWorlds()) {
+			for (final World world : getServer().getWorlds()) {
 				if (config.useMySQL)
 					state.execute("INSERT IGNORE INTO `ar-worlds` (`worldname`) VALUES ('" + world.getName() + "');");
 				else
@@ -282,7 +279,7 @@ public class AnyReg extends JavaPlugin
 				}
 			}
 			return true;
-		} catch (SQLException ex) {
+		} catch (final SQLException ex) {
 			log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 		} finally {
 			try {
@@ -290,7 +287,7 @@ public class AnyReg extends JavaPlugin
 					state.close();
 				if (conn != null)
 					conn.close();
-			} catch (SQLException ex) {
+			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 			}
 		}
@@ -298,8 +295,8 @@ public class AnyReg extends JavaPlugin
 	}
 
 	private boolean importFromSQLite() {
-		Connection mysql = getConnection(true);
-		Connection sqlite = getConnection(false);
+		final Connection mysql = getConnection(true);
+		final Connection sqlite = getConnection(false);
 		ResultSet rs = null;
 		Statement state = null;
 		PreparedStatement ps = null;
@@ -330,7 +327,7 @@ public class AnyReg extends JavaPlugin
 				ps.executeUpdate();
 			}
 			mysql.commit();
-		} catch (Exception ex) {
+		} catch (final Exception ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception while sqlite import", ex);
 			return false;
 		} finally {
@@ -341,7 +338,7 @@ public class AnyReg extends JavaPlugin
 					sqlite.close();
 				if (mysql != null)
 					mysql.close();
-			} catch (SQLException ex) {
+			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 			}
 		}
@@ -372,7 +369,7 @@ public class AnyReg extends JavaPlugin
 	{
 		public void onEntityExplode(EntityExplodeEvent event) {
 			if (!event.isCancelled()) {
-				for (Block block : event.blockList()) {
+				for (final Block block : event.blockList()) {
 					AddRegQueue(block);
 				}
 			}
@@ -381,7 +378,7 @@ public class AnyReg extends JavaPlugin
 
 	private void AddRegQueue(Block block) {
 		if (respawningBlocks.contains(block.getTypeId())) {
-			for (Region region : regions) {
+			for (final Region region : regions) {
 				if (region.isCognizantFor(block)) {
 					regQueue.add(block.getState());
 					break;
@@ -392,7 +389,7 @@ public class AnyReg extends JavaPlugin
 
 	private void AddBlackQueue(Block block) {
 		if (blacklistedBlocks.contains(block.getTypeId())) {
-			for (Region region : regions) {
+			for (final Region region : regions) {
 				if (region.isCognizantFor(block)) {
 					blackQueue.add(block.getState());
 					break;
@@ -408,18 +405,17 @@ public class AnyReg extends JavaPlugin
 	public static Connection getConnection(boolean useMySQL) {
 		if (useMySQL) {
 			try {
-				return DriverManager.getConnection("jdbc:jdc:jdcpool");
-			} catch (SQLException ex) {
-				log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
-				return null;
+				return pool.getConnection();
+			} catch (final SQLException ex) {
+				log.log(Level.SEVERE, "[AnyReg] SQLExeption:", ex);
 			}
 		} else {
-			try	{
+			try {
 				Class.forName("org.sqlite.JDBC");
 				return DriverManager.getConnection("jdbc:sqlite:plugins/AnyReg/anyreg.db");
-			} catch (ClassNotFoundException ex) {
+			} catch (final ClassNotFoundException ex) {
 				log.log(Level.SEVERE, "[AnyReg] sqlitejdbc-v056.jar not found. Make sure, you placed it next to craftbukkit.jar", ex);
-			} catch (SQLException ex) {
+			} catch (final SQLException ex) {
 				log.log(Level.SEVERE, "[AnyReg] SQLExeption:", ex);
 			}
 		}

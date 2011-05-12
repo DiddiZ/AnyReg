@@ -9,7 +9,7 @@ public class Respawn
 	private final double regChance;
 	private final boolean useBlacklist;
 	private final Set<Integer> canReplace;
-	
+
 	public Respawn(int type, int regDelay, double regChance, boolean useBlacklist, Set<Integer> canReplace) {
 		this.type = type;
 		this.regDelay = regDelay;
@@ -17,7 +17,7 @@ public class Respawn
 		this.useBlacklist = useBlacklist;
 		this.canReplace = canReplace;
 	}
-	
+
 	public int getType() {
 		return type;
 	}
@@ -37,7 +37,7 @@ public class Respawn
 	public Set<Integer> getCanReplace() {
 		return canReplace;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return type;

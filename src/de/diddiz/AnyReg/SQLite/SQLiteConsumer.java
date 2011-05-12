@@ -5,9 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
-
 import org.bukkit.block.BlockState;
-
 import de.diddiz.AnyReg.AnyReg;
 import de.diddiz.AnyReg.Consumer;
 
@@ -16,16 +14,17 @@ public class SQLiteConsumer extends Consumer
 	public SQLiteConsumer(LinkedBlockingQueue<BlockState> respawningQueue, LinkedBlockingQueue<BlockState> blacklistedQueue) {
 		super(respawningQueue, blacklistedQueue);
 	}
-	
+
+	@Override
 	public void run() {
-		Connection conn = AnyReg.getConnection();
+		final Connection conn = AnyReg.getConnection();
 		if (conn == null)
 			return;
 		PreparedStatement ps = null;
 		BlockState b;
 		int count = 0;
 		if (respawningQueue.size() > 100)
-			AnyReg.log.info("[AnyReg] Placed queue overloaded. Size: " + respawningQueue.size());	
+			AnyReg.log.info("[AnyReg] Placed queue overloaded. Size: " + respawningQueue.size());
 		try {
 			conn.setAutoCommit(false);
 			ps = conn.prepareStatement("INSERT INTO `ar-respawning` (type, data, x, y, z, worldid) SELECT ?, ?, ?, ?, ? , rowid FROM `ar-worlds` WHERE worldname = ?");
@@ -57,7 +56,7 @@ public class SQLiteConsumer extends Consumer
 				count++;
 			}
 			conn.commit();
-		} catch (SQLException ex) {
+		} catch (final SQLException ex) {
 			AnyReg.log.log(Level.SEVERE, "[AnyReg Consumer] SQL exception", ex);
 		} finally {
 			try {
@@ -65,7 +64,7 @@ public class SQLiteConsumer extends Consumer
 					ps.close();
 				if (conn != null)
 					conn.close();
-			} catch (SQLException ex) {
+			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg Consumer] SQL exception", ex);
 			}
 		}
