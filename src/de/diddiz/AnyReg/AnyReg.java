@@ -227,8 +227,8 @@ public class AnyReg extends JavaPlugin
 			} else
 				sender.sendMessage("You aren't a player");
 			return true;
-		} else
-			return false;
+		}
+		return false;
 	}
 
 	private boolean checkTables() {
@@ -285,8 +285,7 @@ public class AnyReg extends JavaPlugin
 			try {
 				if (state != null)
 					state.close();
-				if (conn != null)
-					conn.close();
+				conn.close();
 			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 			}
@@ -334,10 +333,8 @@ public class AnyReg extends JavaPlugin
 			try {
 				if (rs != null)
 					rs.close();
-				if (sqlite != null)
-					sqlite.close();
-				if (mysql != null)
-					mysql.close();
+				sqlite.close();
+				mysql.close();
 			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 			}

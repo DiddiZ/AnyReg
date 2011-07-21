@@ -83,8 +83,7 @@ public class SQLiteRegTask extends RegTask
 					rs.close();
 				if (psDel != null)
 					psDel.close();
-				if (conn != null)
-					conn.close();
+				conn.close();
 			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg] SQL exception", ex);
 			}

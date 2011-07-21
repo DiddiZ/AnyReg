@@ -62,8 +62,7 @@ public class MySQLConsumer extends Consumer
 			try {
 				if (ps != null)
 					ps.close();
-				if (conn != null)
-					conn.close();
+				conn.close();
 			} catch (final SQLException ex) {
 				AnyReg.log.log(Level.SEVERE, "[AnyReg Consumer] SQL exception", ex);
 			}

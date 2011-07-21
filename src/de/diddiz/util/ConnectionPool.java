@@ -23,11 +23,11 @@ import java.util.Vector;
 
 public class ConnectionPool
 {
+	private final static long timeToLive = 300000;
+	private final static int poolsize = 10;
 	private final Vector<JDCConnection> connections;
 	private final String url, user, password;
-	private final long timeout = 60000;
 	private final ConnectionReaper reaper;
-	private final int poolsize = 10;
 
 	public ConnectionPool(String url, String user, String password) throws ClassNotFoundException {
 		Class.forName("com.mysql.jdbc.Driver");
@@ -46,10 +46,8 @@ public class ConnectionPool
 			if (conn.lease()) {
 				if (conn.isValid())
 					return conn;
-				else {
-					connections.remove(conn);
-					conn.terminate();
-				}
+				connections.remove(conn);
+				conn.terminate();
 			}
 		}
 		conn = new JDCConnection(DriverManager.getConnection(url, user, password));
@@ -63,7 +61,7 @@ public class ConnectionPool
 	}
 
 	private synchronized void reapConnections() {
-		final long stale = System.currentTimeMillis() - timeout;
+		final long stale = System.currentTimeMillis() - timeToLive;
 		for (final JDCConnection conn : connections)
 			if (conn.inUse() && stale > conn.getLastUse() && !conn.isValid())
 				connections.remove(conn);
@@ -112,11 +110,9 @@ public class ConnectionPool
 		public synchronized boolean lease() {
 			if (inuse)
 				return false;
-			else {
-				inuse = true;
-				timestamp = System.currentTimeMillis();
-				return true;
-			}
+			inuse = true;
+			timestamp = System.currentTimeMillis();
+			return true;
 		}
 
 		public boolean inUse() {
